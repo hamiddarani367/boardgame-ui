@@ -1,0 +1,133 @@
+export interface Category {
+  id: number;          // شناسه عددی یکتا
+  slug: string;        // slug برای URL و فیلتر (مثلاً "strategy")
+  name: string;        // نام فارسی
+  icon: string;        // emoji
+  color: string;       // کلاس hover برای MegaMenu
+  lightBg: string;     // پس‌زمینه روشن
+  lightText: string;   // رنگ متن روشن
+  count?: number;      // تعداد بازی (اختیاری)
+}
+
+export const categories: Category[] = [
+  {
+    id: 1,
+    slug: "strategy",
+    name: "استراتژیک",
+    icon: "♟️",
+    color: "hover:bg-red-50 dark:hover:bg-red-950",
+    lightBg: "bg-red-50 dark:bg-red-950",
+    lightText: "text-red-600 dark:text-red-400",
+    count: 42,
+  },
+  {
+    id: 2,
+    slug: "card",
+    name: "کارتی",
+    icon: "🃏",
+    color: "hover:bg-blue-50 dark:hover:bg-blue-950",
+    lightBg: "bg-blue-50 dark:bg-blue-950",
+    lightText: "text-blue-600 dark:text-blue-400",
+    count: 28,
+  },
+  {
+    id: 3,
+    slug: "two-player",
+    name: "دونفره",
+    icon: "👥",
+    color: "hover:bg-purple-50 dark:hover:bg-purple-950",
+    lightBg: "bg-purple-50 dark:bg-purple-950",
+    lightText: "text-purple-600 dark:text-purple-400",
+    count: 35,
+  },
+  {
+    id: 4,
+    slug: "family",
+    name: "خانوادگی",
+    icon: "👨‍👩‍👧‍👦",
+    color: "hover:bg-green-50 dark:hover:bg-green-950",
+    lightBg: "bg-green-50 dark:bg-green-950",
+    lightText: "text-green-600 dark:text-green-400",
+    count: 56,
+  },
+  {
+    id: 5,
+    slug: "party",
+    name: "مهمانی",
+    icon: "🎉",
+    color: "hover:bg-orange-50 dark:hover:bg-orange-950",
+    lightBg: "bg-orange-50 dark:bg-orange-950",
+    lightText: "text-orange-600 dark:text-orange-400",
+    count: 31,
+  },
+  {
+    id: 6,
+    slug: "cooperative",
+    name: "همکاری",
+    icon: "🤝",
+    color: "hover:bg-teal-50 dark:hover:bg-teal-950",
+    lightBg: "bg-teal-50 dark:bg-teal-950",
+    lightText: "text-teal-600 dark:text-teal-400",
+    count: 19,
+  },
+  {
+    id: 7,
+    slug: "economic",
+    name: "اقتصادی",
+    icon: "💰",
+    color: "hover:bg-amber-50 dark:hover:bg-amber-950",
+    lightBg: "bg-amber-50 dark:bg-amber-950",
+    lightText: "text-amber-600 dark:text-amber-400",
+    count: 23,
+  },
+  {
+    id: 8,
+    slug: "war",
+    name: "جنگی",
+    icon: "⚔️",
+    color: "hover:bg-gray-50 dark:hover:bg-gray-800",
+    lightBg: "bg-gray-100 dark:bg-gray-800",
+    lightText: "text-gray-700 dark:text-gray-300",
+    count: 15,
+  },
+  {
+    id: 9,
+    slug: "kids",
+    name: "کودک",
+    icon: "🧒",
+    color: "hover:bg-yellow-50 dark:hover:bg-yellow-950",
+    lightBg: "bg-yellow-50 dark:bg-yellow-950",
+    lightText: "text-yellow-600 dark:text-yellow-400",
+    count: 22,
+  },
+  {
+    id: 10,
+    slug: "puzzle",
+    name: "معمایی",
+    icon: "🧩",
+    color: "hover:bg-indigo-50 dark:hover:bg-indigo-950",
+    lightBg: "bg-indigo-50 dark:bg-indigo-950",
+    lightText: "text-indigo-600 dark:text-indigo-400",
+    count: 18,
+  },
+  {
+    id: 11,
+    slug: "adventure",
+    name: "ماجراجویی",
+    icon: "🗺️",
+    color: "hover:bg-emerald-50 dark:hover:bg-emerald-950",
+    lightBg: "bg-emerald-50 dark:bg-emerald-950",
+    lightText: "text-emerald-600 dark:text-emerald-400",
+    count: 24,
+  },
+  {
+    id: 12,
+    slug: "sci-fi",
+    name: "علمی-تخیلی",
+    icon: "🚀",
+    color: "hover:bg-cyan-50 dark:hover:bg-cyan-950",
+    lightBg: "bg-cyan-50 dark:bg-cyan-950",
+    lightText: "text-cyan-600 dark:text-cyan-400",
+    count: 20,
+  },
+];
