@@ -2,7 +2,7 @@
 
 import { Provider } from "react-redux";
 import { store } from "@/store";
-import { AuthProvider } from "@/providors/AuthProvidor";
+import { AuthProvider } from "@/providers/AuthProvider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
