@@ -274,7 +274,7 @@ export default function Header() {
             <Link href="/" className="shrink-0">
               <div className="flex items-center gap-3">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                  <h1 className="text-[15px] md:text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
                     Board Kingdom
                   </h1>
                   <p className="text-[10px] md:text-xs text-gray-500">
