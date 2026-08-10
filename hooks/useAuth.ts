@@ -1,4 +1,4 @@
-import { AuthContext } from "@/providors/AuthProvidor";
+import { AuthContext } from "@/providers/AuthProvider";
 import { useContext } from "react";
 
 export function useAuth() {

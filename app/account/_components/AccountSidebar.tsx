@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -9,7 +9,9 @@ import {
   Heart,
   Settings,
   ChevronLeft,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const menuItems = [
   { href: "/account", icon: LayoutDashboard, label: "داشبورد" },
@@ -21,6 +23,13 @@ const menuItems = [
 
 export default function AccountSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/");
+  };
 
   return (
     <aside className="hidden lg:block lg:w-80 flex-shrink-0">
@@ -47,6 +56,15 @@ export default function AccountSidebar() {
               </Link>
             );
           })}
+
+          {/* دکمه خروج (دسکتاپ) */}
+          <button
+            onClick={handleLogout}
+            className="hidden lg:flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950"
+          >
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            <span className="hidden lg:inline">خروج</span>
+          </button>
         </nav>
       </div>
     </aside>
