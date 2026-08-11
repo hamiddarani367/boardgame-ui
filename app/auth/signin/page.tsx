@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { toPersianDigits, toEnglishDigits } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/constants";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -13,7 +14,6 @@ export default function SignInPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mockOtp, setMockOtp] = useState("");
 
   // اگر کاربر قبلاً لاگین کرده، به صفحه اصلی برود
   useEffect(() => {
@@ -22,7 +22,6 @@ export default function SignInPage() {
     }
   }, [user, isLoading, router]);
 
-  // اگر هنوز در حال بارگذاری Auth هستیم، یک لودینگ ساده نشان بده
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -31,10 +30,8 @@ export default function SignInPage() {
     );
   }
 
-  // اگر کاربر وجود دارد، null برگردان (تا قبل از redirect چیزی رندر نشود)
   if (user) return null;
 
-  // اعتبارسنجی شماره موبایل ایران
   const validatePhone = (phoneNumber: string): boolean => {
     const cleanPhone = toEnglishDigits(phoneNumber).replace(/\D/g, "");
     return /^09\d{9}$/.test(cleanPhone);
@@ -49,31 +46,64 @@ export default function SignInPage() {
     }
 
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const fakeCode = Math.floor(1000 + Math.random() * 9000).toString();
-    setMockOtp(fakeCode);
-    console.log(`📱 کد تأیید برای ${toEnglishDigits(phone)}: ${fakeCode}`);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: toEnglishDigits(phone) }),
+      });
 
-    setStep("code");
-    setLoading(false);
+      if (res.ok) {
+        setStep("code");
+      } else {
+        const data = await res.json();
+        setError(data.message || "خطا در ارسال کد");
+      }
+    } catch {
+      setError("خطا در ارتباط با سرور");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyCode = async () => {
     setError("");
-    if (code !== mockOtp) {
-      setError("کد وارد شده اشتباه است");
+
+    if (!code || code.length !== 6) {
+      setError("کد باید ۶ رقم باشد");
       return;
     }
 
     setLoading(true);
-    login("fake_access_token", "fake_refresh_token", {
-      id: "1",
-      phone: toEnglishDigits(phone),
-      name: `کاربر ${phone.slice(-4)}`,
-    });
-    router.push("/");
-    setLoading(false);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: toEnglishDigits(phone),
+          otp: code,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        login(data.access_token, data.refresh_token, {
+          id: data.user?.id || phone,
+          phone: toEnglishDigits(phone),
+          name: data.user?.name || `کاربر ${phone.slice(-4)}`,
+        });
+        router.push("/");
+      } else {
+        setError(data.message || "کد اشتباه یا منقضی شده");
+      }
+    } catch {
+      setError("خطا در ارتباط با سرور");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -138,18 +168,12 @@ export default function SignInPage() {
               <input
                 type="text"
                 inputMode="numeric"
-                maxLength={4}
+                maxLength={6}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 className="w-full h-12 rounded-xl border border-gray-200 bg-white px-4 text-sm mb-4 text-center tracking-[0.5em] focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                 required
               />
-              <p className="text-xs text-gray-400 mb-4 text-center">
-                کد تست:{" "}
-                <span className="font-mono font-bold text-blue-600">
-                  {mockOtp}
-                </span>
-              </p>
               <button
                 type="button"
                 onClick={handleVerifyCode}
