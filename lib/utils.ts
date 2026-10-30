@@ -8,7 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * عدد را به صورت فارسی (با ارقام فارسی و جداکنندهٔ سه‌رقمی) برمی‌گرداند
  */
-export function formatPrice(price: number): string {
+export function formatPrice(price: number | null | undefined): string {
+  if (typeof price !== "number" || isNaN(price)) return "۰";
   return price.toLocaleString("fa-IR");
 }
 

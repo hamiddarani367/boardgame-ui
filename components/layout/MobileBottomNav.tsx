@@ -12,10 +12,8 @@ import {
   MapPin,
   Settings,
 } from "lucide-react";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
+import { useCart } from "@/hooks/useCart";
 
-// ۱. اینترفیس مشترک با badge اختیاری
 interface NavItem {
   href: string;
   icon: React.ElementType;
@@ -41,9 +39,10 @@ const accountNavItems: NavItem[] = [
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
-  const totalItems = useSelector((state: RootState) =>
-    state.cart.items.reduce((sum, item) => sum + item.quantity, 0)
-  );
+
+  // ✅ استفاده از React Query به‌جای Redux
+  const { data: cart } = useCart();
+  const totalItems = cart?.total_items ?? 0;
 
   const isAccountPage = pathname.startsWith("/account");
   const items = isAccountPage ? accountNavItems : mainNavItems;
@@ -54,7 +53,9 @@ export default function MobileBottomNav() {
         {items.map((item) => {
           const isActive =
             pathname === item.href ||
-            (item.href !== "/" && item.href !== "/account" && pathname.startsWith(item.href));
+            (item.href !== "/" &&
+              item.href !== "/account" &&
+              pathname.startsWith(item.href));
 
           return (
             <Link
@@ -65,12 +66,14 @@ export default function MobileBottomNav() {
               }`}
             >
               <item.icon className="h-5 w-5" />
-              {/* ۲. حالا item.badge با اطمینان boolean | undefined است */}
+
+              {/* ✅ badge سبد خرید */}
               {item.badge && !isAccountPage && totalItems > 0 && (
-                <span className="absolute -top-0.5 right-1/4 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[9px] font-bold text-white">
-                  {totalItems}
+                <span className="absolute -top-0.5 right-1/4 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 text-[9px] font-bold text-white px-1">
+                  {totalItems.toLocaleString("fa-IR")}
                 </span>
               )}
+
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           );

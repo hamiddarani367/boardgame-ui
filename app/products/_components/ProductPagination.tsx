@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import {
@@ -21,13 +21,9 @@ export default function ProductPagination({
 }: ProductPaginationProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activePage, setActivePage] = useState(currentPage);
 
-  // همگام‌سازی activePage با URL بعد از hydration
-  useEffect(() => {
-    const pageFromUrl = Number(searchParams.get("page")) || currentPage;
-    setActivePage(pageFromUrl);
-  }, [searchParams, currentPage]);
+  // شماره صفحه را مستقیماً از URL می‌خوانیم (بدون state)
+  const activePage = Number(searchParams.get("page")) || currentPage;
 
   const handlePage = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -36,7 +32,7 @@ export default function ProductPagination({
     router.push(`/products?${params.toString()}`, { scroll: false });
   };
 
-  // اسکرول نرم به بالای صفحه با تغییر activePage
+  // اسکرول نرم به بالا هنگام تغییر صفحه
   useEffect(() => {
     const timer = setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });

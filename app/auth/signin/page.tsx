@@ -1,36 +1,76 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { apiClient } from "@/hooks/useApi";
+import { getGuestToken, clearGuestToken } from "@/lib/cart-token";
 import { toPersianDigits, toEnglishDigits } from "@/lib/utils";
-import { API_BASE_URL } from "@/lib/constants";
+import { Loader2 } from "lucide-react";
+import type { AxiosError } from "axios";
 
-export default function SignInPage() {
+interface SendOtpResponse {
+  message: string;
+}
+
+interface VerifyOtpUser {
+  id: number;
+  firstname: string;
+  lastname: string;
+  phone: string;
+  permissions?: string[];
+}
+
+interface VerifyOtpResponse {
+  tokens?: {
+    access_token: string;
+    refresh_token: string;
+  };
+  access_token?: string;
+  refresh_token?: string;
+  user: VerifyOtpUser;
+}
+
+interface ApiErrorBody {
+  error?: string;
+  message?: string;
+}
+
+function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, login, isLoading } = useAuth();
+
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // اگر کاربر قبلاً لاگین کرده، به صفحه اصلی برود
+  // اگر کاربر قبلاً لاگین کرده، به callbackUrl برود
   useEffect(() => {
     if (!isLoading && user) {
-      router.push("/");
+      window.location.href = callbackUrl;
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, callbackUrl]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-500">در حال بارگذاری...</p>
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
       </div>
     );
   }
 
-  if (user) return null;
+  if (user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   const validatePhone = (phoneNumber: string): boolean => {
     const cleanPhone = toEnglishDigits(phoneNumber).replace(/\D/g, "");
@@ -48,20 +88,23 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/auth/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: toEnglishDigits(phone) }),
-      });
+      const body = { phone: toEnglishDigits(phone) };
+      console.log("📱 Send OTP body:", body);
 
-      if (res.ok) {
-        setStep("code");
-      } else {
-        const data = await res.json();
-        setError(data.message || "خطا در ارسال کد");
-      }
-    } catch {
-      setError("خطا در ارتباط با سرور");
+      const { data } = await apiClient.post<SendOtpResponse>(
+        "/auth/send-otp",
+        body
+      );
+      console.log("📱 Send OTP response:", data);
+      setStep("code");
+    } catch (err) {
+      const axiosErr = err as AxiosError<ApiErrorBody>;
+      console.error("❌ Send OTP error:", axiosErr.response?.data);
+      const errMsg =
+        axiosErr?.response?.data?.error ||
+        axiosErr?.response?.data?.message ||
+        "خطا در ارسال کد";
+      setError(errMsg);
     } finally {
       setLoading(false);
     }
@@ -78,30 +121,73 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/v1/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: toEnglishDigits(phone),
-          otp: code,
-        }),
+      // ✅ guest_token را از localStorage بگیر (ممکن است وجود داشته باشد)
+      const guestToken = getGuestToken();
+
+      // ✅ ساخت body به‌صورت شرطی: guest_token فقط اگر وجود داشت اضافه شود
+      const body: {
+        phone: string;
+        otp: string;
+        guest_token?: string;
+      } = {
+        phone: toEnglishDigits(phone),
+        otp: code,
+      };
+
+      if (guestToken) {
+        body.guest_token = guestToken;
+      }
+
+      console.log("🔐 Verify OTP body:", body);
+
+      const { data } = await apiClient.post<VerifyOtpResponse>(
+        "/auth/verify-otp",
+        body
+      );
+
+      console.log("✅ Verify OTP response:", data);
+
+      // ✅ استخراج توکن‌ها (پشتیبانی از دو ساختار)
+      const accessToken = data.tokens?.access_token ?? data.access_token;
+      const refreshToken = data.tokens?.refresh_token ?? data.refresh_token;
+
+      if (!accessToken || !refreshToken) {
+        console.error("❌ Invalid response structure:", data);
+        setError("پاسخ سرور نامعتبر است");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ ذخیره در AuthProvider (localStorage + cookie)
+      login(accessToken, refreshToken, {
+        id: String(data.user?.id ?? phone),
+        phone: data.user?.phone ?? toEnglishDigits(phone),
+        name:
+          [data.user?.firstname, data.user?.lastname]
+            .filter(Boolean)
+            .join(" ")
+            .trim() || `کاربر ${phone.slice(-4)}`,
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        login(data.access_token, data.refresh_token, {
-          id: data.user?.id || phone,
-          phone: toEnglishDigits(phone),
-          name: data.user?.name || `کاربر ${phone.slice(-4)}`,
-        });
-        router.push("/");
-      } else {
-        setError(data.message || "کد اشتباه یا منقضی شده");
+      // ✅ اگر guest_token داشتیم، پاکش کن چون بک‌اند سبد را ادغام کرد
+      if (guestToken) {
+        clearGuestToken();
       }
-    } catch {
-      setError("خطا در ارتباط با سرور");
-    } finally {
+
+      // ✅ صبر کوتاه تا localStorage و cookie نوشته شوند
+      await new Promise((r) => setTimeout(r, 100));
+
+      // ✅ رفرش کامل صفحه برای گرفتن سبد کاربر
+      window.location.href = callbackUrl;
+    } catch (err) {
+      const axiosErr = err as AxiosError<ApiErrorBody>;
+      console.error("❌ Verify OTP error:", axiosErr.response?.data);
+      console.error("❌ Status:", axiosErr.response?.status);
+      const errMsg =
+        axiosErr?.response?.data?.error ||
+        axiosErr?.response?.data?.message ||
+        "کد اشتباه یا منقضی شده";
+      setError(errMsg);
       setLoading(false);
     }
   };
@@ -118,7 +204,7 @@ export default function SignInPage() {
         </div>
       </div>
 
-      {/* بخش فرم (بدون کارت، فقط padding) */}
+      {/* بخش فرم */}
       <div className="flex-1 px-4 md:px-0">
         <div className="max-w-md mx-auto w-full">
           <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">
@@ -148,9 +234,16 @@ export default function SignInPage() {
                 type="button"
                 onClick={handleSendCode}
                 disabled={loading}
-                className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {loading ? "در حال ارسال..." : "ارسال کد تأیید"}
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    در حال ارسال...
+                  </>
+                ) : (
+                  "ارسال کد تأیید"
+                )}
               </button>
             </div>
           ) : (
@@ -178,9 +271,16 @@ export default function SignInPage() {
                 type="button"
                 onClick={handleVerifyCode}
                 disabled={loading}
-                className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {loading ? "در حال بررسی..." : "تأیید و ورود"}
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    در حال بررسی...
+                  </>
+                ) : (
+                  "تأیید و ورود"
+                )}
               </button>
               <button
                 type="button"
@@ -198,5 +298,19 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        </div>
+      }
+    >
+      <SignInForm />
+    </Suspense>
   );
 }

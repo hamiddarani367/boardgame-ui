@@ -2,10 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { categories } from "@/lib/categories";
+import { useApiQuery } from "@/hooks/useApi";
+import type { Category } from "@/types/category";
 
 export function MegaMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const { data: categories, isLoading, error } = useApiQuery<Category[]>(
+    "/categories/menu",
+    ["categories-menu"]
+  );
 
   return (
     <div
@@ -20,18 +25,36 @@ export function MegaMenu() {
             : "bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40"
         }`}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-        دسته‌بندی‌ها
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className="h-4 w-4"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+        دسته‌بندی‌ها
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className={`h-4 w-4 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
@@ -43,28 +66,54 @@ export function MegaMenu() {
         }`}
       >
         <div className="p-5">
-          <div className="grid grid-cols-3 gap-2">
-            {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/products?category=${cat.slug}`}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 rounded-xl p-3 transition-colors ${cat.color}`}
-              >
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-800 text-xl">
-                  {cat.icon}
-                </span>
-                <div>
-                  <p className="font-bold text-sm text-gray-900 dark:text-white">
-                    {cat.name}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {cat.count} بازی
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
+          {isLoading && (
+            <div className="text-center py-6 text-gray-500">
+              در حال بارگذاری...
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-6 text-red-500">
+              خطا در دریافت دسته‌بندی‌ها
+            </div>
+          )}
+
+          {!isLoading && !error && categories && categories.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {categories.map((cat) => (
+                <Link
+                  key={cat.id}
+                  href={`/products?category=${cat.slug}`}
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl p-3 transition-colors ${
+                    cat.light_bg || "bg-gray-50 dark:bg-gray-900"
+                  } ${cat.color || "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/60 dark:bg-black/20 text-xl">
+                    {cat.icon || "🎮"}
+                  </span>
+                  <div>
+                    <p
+                      className={`font-bold text-sm ${
+                        cat.light_text || "text-gray-900 dark:text-white"
+                      }`}
+                    >
+                      {cat.name}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {cat.count ? `${cat.count} بازی` : "بازی‌ها"}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {!isLoading && !error && categories?.length === 0 && (
+            <div className="text-center py-6 text-gray-500">
+              دسته‌بندی موجود نیست
+            </div>
+          )}
 
           <div className="mt-4 border-t border-gray-100 dark:border-gray-800 pt-4 text-center">
             <Link

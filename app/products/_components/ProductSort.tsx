@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const sortOptions = [
@@ -14,13 +13,9 @@ const sortOptions = [
 export default function ProductSort({ currentSort }: { currentSort: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeSort, setActiveSort] = useState(currentSort);
 
-  // همگام‌سازی با URL بعد از hydration
-  useEffect(() => {
-    const sortFromUrl = searchParams.get("sort") || currentSort;
-    setActiveSort(sortFromUrl);
-  }, [searchParams, currentSort]);
+  // مستقیماً از URL می‌خوانیم، بدون state
+  const activeSort = searchParams.get("sort") || currentSort;
 
   const handleSort = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -30,7 +25,7 @@ export default function ProductSort({ currentSort }: { currentSort: string }) {
   };
 
   return (
-    <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-1.5">
+    <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-1.5 mb-4">
       {sortOptions.map((option) => (
         <button
           key={option.value}

@@ -3,7 +3,8 @@ import ProductsPageContent from "./_components/ProductsPageContent";
 
 export const metadata: Metadata = {
   title: "محصولات | Board Kingdom",
-  description: "انواع بردگیم‌های استراتژیک، خانوادگی، کارتی و مهمانی با بهترین قیمت",
+  description:
+    "انواع بردگیم‌های استراتژیک، خانوادگی، کارتی و مهمانی با بهترین قیمت",
 };
 
 export default async function ProductsPage({
@@ -15,7 +16,5 @@ export default async function ProductsPage({
   const page = Number(params.page) || 1;
   const sort = (params.sort as string) || "newest";
 
-  return (
-    <ProductsPageContent currentPage={page} currentSort={sort} />
-  );
+  return <ProductsPageContent currentPage={page} currentSort={sort} />;
 }

@@ -5,28 +5,30 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
+const PLACEHOLDER_IMAGE = "/images/placeholder.jpg";
+
 export interface ProductCardProps {
-  id?: string; // اجباری برای لینک خودکار
-  title: string;
-  persianTitle: string;
+  slug: string;
+  name?: string;           // English title
+  persian_title?: string;   // Persian title
   price: number;
-  discountedPrice?: number;
-  image: string;
+  sale_price?: number | null;
+  main_image?: string;
   players?: string;
   time?: string;
   age?: string;
   badge?: string;
   badgeColor?: string;
-  href?: string; // اختیاری – اگر داده شود همان استفاده می‌شود
+  href?: string;
 }
 
 export default function ProductCard({
-  id,
-  title,
-  persianTitle,
+  slug,
+  name,
+  persian_title,
   price,
-  discountedPrice,
-  image,
+  sale_price,
+  main_image,
   players,
   time,
   age,
@@ -35,9 +37,12 @@ export default function ProductCard({
   href,
 }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-
-  // اولویت با href سفارشی است، وگرنه از id مسیر می‌سازیم
-  const finalHref = href || (id ? `/products/${id}` : undefined);
+  const finalHref = href || `/products/${slug}`;
+  const salePrice = sale_price ?? undefined;
+  const imageSrc =
+    main_image && main_image.trim() !== "" ? main_image : PLACEHOLDER_IMAGE;
+  const displayName = persian_title || name || "محصول";
+  const altText = displayName;
 
   const cardContent = (
     <div
@@ -55,8 +60,8 @@ export default function ProductCard({
 
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800">
         <Image
-          src={image}
-          alt={title}
+          src={imageSrc}
+          alt={altText}
           fill
           className={`object-cover transition-transform duration-500 ${
             isHovered ? "scale-105" : "scale-100"
@@ -66,12 +71,9 @@ export default function ProductCard({
       </div>
 
       <div className="p-2">
-        <h3 className="text-[10px] text-gray-400 dark:text-gray-500 font-medium leading-tight truncate">
-          {title}
+        <h3 className="text-xs md:text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">
+          {displayName}
         </h3>
-        <p className="text-xs md:text-sm font-bold text-gray-900 dark:text-white mt-0.5 leading-tight truncate">
-          {persianTitle}
-        </p>
 
         {(players || time || age) && (
           <div className="flex items-center gap-2 text-[9px] text-gray-400 dark:text-gray-500 mt-1">
@@ -83,10 +85,10 @@ export default function ProductCard({
 
         <div className="flex items-center justify-between mt-1.5">
           <div className="flex items-baseline gap-1">
-            {discountedPrice ? (
+            {salePrice ? (
               <>
                 <span className="text-sm font-black text-red-600 dark:text-red-400">
-                  {formatPrice(discountedPrice)}
+                  {formatPrice(salePrice)}
                 </span>
                 <span className="text-[10px] text-gray-400 line-through">
                   {formatPrice(price)}
@@ -99,9 +101,9 @@ export default function ProductCard({
             )}
             <span className="text-[10px] text-gray-400">تومان</span>
           </div>
-          {discountedPrice && (
+          {salePrice && (
             <span className="bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-400 text-[9px] font-bold px-1.5 py-0.5">
-              ٪{Math.round(((price - discountedPrice) / price) * 100)}
+              ٪{Math.round(((price - salePrice) / price) * 100)}
             </span>
           )}
         </div>
@@ -109,8 +111,5 @@ export default function ProductCard({
     </div>
   );
 
-  if (finalHref) {
-    return <Link href={finalHref}>{cardContent}</Link>;
-  }
-  return cardContent;
+  return <Link href={finalHref}>{cardContent}</Link>;
 }

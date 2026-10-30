@@ -20,8 +20,7 @@ import { MegaMenu } from "./MegaMenu";
 import { CartDropdown } from "./CartDropDown";
 import { getSiteSettings } from "@/lib/settings";
 import { formatPrice } from "@/lib/utils";
-import { searchProducts } from "@/lib/products";
-import type { Product } from "@/lib/products";
+import { useSearch } from "@/hooks/useSearch";
 import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
@@ -52,29 +51,31 @@ export default function Header() {
 
   // ---- search states ----
   const [searchQuery, setSearchQuery] = useState("");
-  const [results, setResults] = useState<Product[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
-  const searchRef = useRef<HTMLDivElement>(null);
-  const desktopInputRef = useRef<HTMLInputElement>(null);
-  const mobileInputRef = useRef<HTMLInputElement>(null);
-
-  // Load recent searches
-  useEffect(() => {
+  // جستجوهای اخیر (lazy initializer)
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("recentSearches");
       if (stored) {
         try {
-          setRecentSearches(JSON.parse(stored));
+          return JSON.parse(stored);
         } catch {
-          setRecentSearches([]);
+          return [];
         }
       }
     }
-  }, []);
+    return [];
+  });
+
+  // جستجوی زنده با React Query (useSearch جدید)
+  const { data: searchData, isLoading: isSearching } = useSearch(searchQuery);
+  const results = searchData?.results ?? []; // Product[]
+
+  const searchRef = useRef<HTMLDivElement>(null);
+  const desktopInputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
 
   const saveRecentSearch = useCallback(
     (query: string) => {
@@ -87,22 +88,6 @@ export default function Header() {
     },
     [recentSearches]
   );
-
-  // جستجوی زنده
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setResults([]);
-      setIsSearching(false);
-      return;
-    }
-    setIsSearching(true);
-    const timer = setTimeout(() => {
-      const found = searchProducts(searchQuery);
-      setResults(found);
-      setIsSearching(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // بستن dropdown دسکتاپ با کلیک خارج
   useEffect(() => {
@@ -164,7 +149,7 @@ export default function Header() {
     desktopInputRef.current?.focus();
   };
 
-  // ---- UI Components ----
+  // ---- توابع کمکی ----
   const RecentAndPopular = () => (
     <div className="p-4">
       {recentSearches.length > 0 && (
@@ -238,23 +223,23 @@ export default function Header() {
             <button
               key={product.id}
               onClick={() =>
-                handleResultClick(product.slug, product.persianTitle)
+                handleResultClick(product.slug, product.name)
               }
               className="flex w-full items-center gap-3 px-4 py-2 text-right hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors rounded-lg"
             >
               {product.image && (
                 <img
                   src={product.image}
-                  alt={product.persianTitle}
+                  alt={product.name}
                   className="h-10 w-10 rounded-lg object-cover"
                 />
               )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                  {product.persianTitle}
+                  {product.name}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">
-                  {formatPrice(product.discountedPrice ?? product.price)} تومان
+                  {formatPrice(product.discounted_price ?? product.price)} تومان
                 </div>
               </div>
             </button>
@@ -284,7 +269,7 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* ===== Desktop Search ===== */}
+            {/* Desktop Search */}
             <div className="hidden lg:flex flex-1 relative" ref={searchRef}>
               <form onSubmit={handleSearchSubmit} className="relative w-full">
                 <Search className="absolute right-4 top-1/2 size-5 -translate-y-1/2 text-gray-400" />
@@ -312,16 +297,12 @@ export default function Header() {
               </form>
               {showDropdown && (
                 <div className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl z-50 overflow-hidden max-h-96 overflow-y-auto">
-                  {searchQuery.trim() === "" ? (
-                    <RecentAndPopular />
-                  ) : (
-                    <SearchResultsList />
-                  )}
+                  {searchQuery.trim() === "" ? RecentAndPopular() : SearchResultsList()}
                 </div>
               )}
             </div>
 
-            {/* ===== Mobile Trigger ===== */}
+            {/* Mobile Trigger */}
             <div className="lg:hidden flex-1">
               <button
                 onClick={() => setMobileSearchOpen(true)}
@@ -332,7 +313,7 @@ export default function Header() {
               </button>
             </div>
 
-            {/* ===== Actions (desktop) ===== */}
+            {/* Actions */}
             <div className="hidden md:flex items-center gap-2">
               <Button
                 variant="ghost"
@@ -341,9 +322,7 @@ export default function Header() {
               >
                 <Heart className="size-5" />
               </Button>
-
               <CartDropdown />
-
               {user ? (
                 <Link href="/account">
                   <Button
@@ -403,7 +382,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ===== Mobile Search Overlay ===== */}
+      {/* Mobile Search Overlay */}
       {mobileSearchOpen && (
         <div
           className="lg:hidden"
@@ -454,11 +433,7 @@ export default function Header() {
             </form>
           </div>
           <div className="flex-1 bg-white dark:bg-gray-900">
-            {searchQuery.trim() === "" ? (
-              <RecentAndPopular />
-            ) : (
-              <SearchResultsList />
-            )}
+            {searchQuery.trim() === "" ? RecentAndPopular() : SearchResultsList()}
           </div>
         </div>
       )}
